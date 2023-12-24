@@ -43,7 +43,7 @@ main(int argc, char* argv[])
   sf::Font myFont;
 
   // attempt to load the font from a file
-  if (!myFont.loadFromFile("fonts/nirmala.ttf")) {
+  if (!myFont.loadFromFile("fonts/tech.ttf")) {
     // if we can't load the font exit
     std::cerr << "Could not load font\n";
     exit(-1);
