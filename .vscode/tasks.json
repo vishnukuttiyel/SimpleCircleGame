@@ -2,19 +2,32 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "CMake Configure Debug",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-DCMAKE_BUILD_TYPE=Debug",
+                "${workspaceFolder}/build" // Specify the path to the build folder
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Debug"
+                "${workspaceFolder}/build" // Specify the path to the build folder
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": []
         }
     ]
 }
