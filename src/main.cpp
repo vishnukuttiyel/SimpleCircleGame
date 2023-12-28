@@ -7,12 +7,17 @@
 #include "imgui-SFML.h"
 #include "imgui.h"
 
+struct BoundingBox {
+  float x_min, y_min, x_max, y_max;
+};
+
 class Circle {
  private:
-  float p_radius;
   size_t p_id = 0;
 
  public:
+  float radius;
+  int segments = 32;
   std::string name;
   float pos_x;
   float pos_y;
@@ -22,10 +27,13 @@ class Circle {
   int color_g;
   int color_b;
   bool alive;
+  BoundingBox bounding_box;
+  sf::CircleShape circle_shape;
+  sf::Text text;
   Circle() {}
   Circle(std::string name_in, float pos_x_in, float pos_y_in, float delta_x_in,
          float delta_y_in, int color_r_in, int color_g_in, int color_b_in,
-         float p_radius_in, size_t id)
+         float radius_in, size_t id)
       : name(name_in),
         pos_x(pos_x_in),
         pos_y(pos_y_in),
@@ -34,19 +42,69 @@ class Circle {
         color_r(color_r_in),
         color_g(color_g_in),
         color_b(color_b_in),
-        p_radius(p_radius_in),
+        radius(radius_in),
         p_id(id) {
     alive = true;
+    circle_shape.setRadius(radius);
+    circle_shape.setPointCount(segments);
+    circle_shape.setPosition(pos_x, pos_y);
+    circle_shape.setFillColor(sf::Color(color_r, color_g, color_b));
+    text.setString(name);
+  }
+  void updatePosition(float window_width, float window_height) {
+    pos_x = circle_shape.getPosition().x;
+    pos_y = circle_shape.getPosition().y;
+
+    updateBoundingBox();
+    updateDelta(window_width, window_height);
+
+    pos_x = pos_x + delta_x;
+    pos_y = pos_y + delta_y;
+
+    circle_shape.setPosition(pos_x, pos_y);
+  }
+
+  void updateDelta(float window_width, float window_height) {
+    if (((bounding_box.x_max + delta_x) >= window_width) ||
+        ((bounding_box.x_min + delta_x) <= 0.0f)) {
+      delta_x = -delta_x;
+    }
+
+    if (((bounding_box.y_max + delta_y) >= window_height) ||
+        ((bounding_box.y_min + delta_y) <= 0.0f)) {
+      delta_y = -delta_y;
+    }
+  };
+  void updateBoundingBox() {
+    bounding_box.x_max = pos_x + 2 * radius;
+    bounding_box.x_min = pos_x;
+    bounding_box.y_max = pos_y + 2 * radius;
+    bounding_box.y_min = pos_y;
+  }
+  void updateText(sf::Font& myFont) {
+    text.setFont(myFont);
+
+    auto textBounds = text.getLocalBounds();
+    auto textHeight = (float)text.getCharacterSize();
+    auto textX = pos_x + (bounding_box.x_max - bounding_box.x_min -
+                          textBounds.width - textBounds.left) /
+                             2;
+    auto textY = pos_y + (bounding_box.y_max - bounding_box.y_min - textHeight -
+                          textBounds.top) /
+                             2;
+
+    text.setPosition(textX, textY);
+    auto textBoundsGloabl = text.getGlobalBounds();
   }
 };
 
 class Rectangle {
  private:
-  float p_length;
-  float p_breadth;
   size_t p_id = 0;
 
  public:
+  float length;
+  float breadth;
   std::string name;
   float pos_x;
   float pos_y;
@@ -60,7 +118,7 @@ class Rectangle {
   Rectangle() {}
   Rectangle(std::string name_in, float pos_x_in, float pos_y_in,
             float delta_x_in, float delta_y_in, int color_r_in, int color_g_in,
-            int color_b_in, float length, float breadth, size_t id)
+            int color_b_in, float length_in, float breadth_in, size_t id)
       : name(name_in),
         pos_x(pos_x_in),
         pos_y(pos_y_in),
@@ -69,8 +127,8 @@ class Rectangle {
         color_r(color_r_in),
         color_g(color_g_in),
         color_b(color_b_in),
-        p_length(length),
-        p_breadth(breadth),
+        length(length_in),
+        breadth(breadth_in),
         p_id(id) {
     alive = true;
   }
@@ -173,140 +231,115 @@ class EnityManager {
 };
 
 int main(int argc, char* argv[]) {
-  // create a wundow of size w*h pixels
-  // top-left of the window is (0,0) and bottom-right is (w,h)
-  // you will have to read these from the config file
-
-  // const int wWidth = 1280;
-  // const int wHeight = 720;
-
-  // sf::RenderWindow window(sf::VideoMode(wWidth, wHeight), "SFML Works!");
-  // window.setFramerateLimit(60);
-
-  // // initialize IMGUI and create a clock used for its timing
-  // ImGui::SFML::Init(window);
-  // sf::Clock deltaClock;
-
-  // // scale the imgui ui by a give factor, does not affect text size
-  // ImGui::GetStyle().ScaleAllSizes(1.0f);
-
-  // // the imgui color {r, g, b} wheel requires floats from 0-1
-  // float c[3] = { 0.0f, 1.0f, 1.0f };
-
-  // // shape
-  // float circleRadius = 50;
-  // int circleSegments = 32; // number of segments to draw the circle
-  // float circleVelocityX = 1.0f;
-  // float circleVelocityY = 0.5f;
-  // bool drawCircle = true;
-  // bool drawText = true;
-
-  // // create the sfml circle shape based on our paramteres
-  // sf::CircleShape circle(circleRadius, circleSegments);
-
-  // sf::Font myFont;
-
-  // // attempt to load the font from a file
-  // if (!myFont.loadFromFile("fonts/tech.ttf")) {
-  //   // if we can't load the font exit
-  //   std::cerr << "Could not load font\n";
-  //   exit(-1);
-  // }
-
-  // sf::Text text("Sample Text", myFont, 24);
-
-  // text.setPosition(0, wHeight - (float)text.getCharacterSize());
-
-  // // set up a charcter array to set the text
-  // char displayString[255] = "Sample Text";
-
-  // // main loop - continues for each frame, while window is open
-  // while (window.isOpen()) {
-
-  //   sf::Event event;
-  //   while (window.pollEvent(event)) {
-  //     ImGui::SFML::ProcessEvent(window, event);
-
-  //     // This event is treggered when window is closed
-  //     if (event.type == sf::Event::Closed) {
-  //       window.close();
-  //     }
-
-  //     // this event is triggered when any key is pressed
-  //     if (event.type == sf::Event::KeyPressed) {
-
-  //       // print the key that was pressed to the console
-  //       std::cout << " Key pressed with code =" << event.key.code << "\n";
-
-  //       if (event.key.code == sf::Keyboard::X) {
-
-  //         // reverse the x direction of the circle on the screen
-  //         circleVelocityX *= -1.0f;
-  //       }
-  //     }
-  //   }
-
-  //   // update imgui of this frame with the time that the last frame took
-  //   ImGui::SFML::Update(window, deltaClock.restart());
-
-  //   ImGui::Begin("Window title");
-  //   ImGui::Text("Window text!");
-  //   ImGui::Checkbox("Draw Circle", &drawCircle);
-  //   ImGui::SameLine();
-  //   ImGui::Checkbox("Draw Text", &drawText);
-  //   ImGui::SameLine();
-  //   ImGui::SliderFloat("Radius", &circleRadius, 0.0f, 300.0f);
-  //   ImGui::SliderInt("Sides", &circleSegments, 3, 64);
-  //   ImGui::ColorEdit3("Color Circle", c);
-  //   ImGui::InputText("Text", displayString, 255);
-
-  //   if (ImGui::Button("Set Text")) {
-  //     text.setString(displayString);
-  //   }
-  //   ImGui::SameLine();
-
-  //   if (ImGui::Button("Reset Circle")) {
-  //     circle.setPosition(0, 0);
-  //   }
-  //   ImGui::End();
-
-  //   // set the circle properies because they may have been updated with the
-  //   ui circle.setFillColor(sf::Color(c[0] * 255, c[1] * 255, c[2] * 255));
-  //   circle.setPointCount(circleSegments);
-  //   circle.setRadius(circleRadius);
-
-  //   // basic animation - move in each frame
-  //   circle.setPosition(circle.getPosition().x + circleVelocityX,
-  //                      circle.getPosition().y + circleVelocityY);
-
-  //   // basic rendering function calls
-  //   window.clear();
-  //   if (drawCircle) {
-
-  //     window.draw(circle);
-  //   }
-
-  //   if (drawText) {
-
-  //     window.draw(text);
-  //   }
-
-  //   ImGui::SFML::Render(window);
-  //   window.display();
-  // }
-
   EnityManager entity_manager;
   entity_manager.loadFromFile("../config/config.txt");
 
   std::cout << "Number of entities = " << entity_manager.p_id << "\n";
+  // create a window of size w*h pixels
+  // top-left of the window is (0,0) and bottom-right is (w,h)
+  // you will have to read these from the config file
 
-  for (auto circles : entity_manager.m_circlesVec) {
-    std::cout << circles->name << "\n";
+  auto wWidth = entity_manager.window.width;
+  auto wHeight = entity_manager.window.height;
+
+  sf::RenderWindow window(sf::VideoMode(wWidth, wHeight), "SFML Works!");
+  window.setFramerateLimit(60);
+
+  // initialize IMGUI and create a clock used for its timing
+  ImGui::SFML::Init(window);
+  sf::Clock deltaClock;
+
+  // scale the imgui ui by a give factor, does not affect text size
+  ImGui::GetStyle().ScaleAllSizes(1.0f);
+
+  // // the imgui color {r, g, b} wheel requires floats from 0-1
+  float c[3] = {0.0f, 1.0f, 1.0f};
+
+  sf::Font myFont;
+
+  // attempt to load the font from a file
+  if (!myFont.loadFromFile(entity_manager.Font.fontPath)) {
+    // if we can't load the font exit
+    std::cerr << "Could not load font\n";
+    exit(-1);
   }
 
-  for (auto circles : entity_manager.m_rectanglesVec) {
-    std::cout << circles->name << "\n";
-  }
+  sf::Text text("Sample Text", myFont, 24);
 
+  text.setPosition(0, wHeight - (float)text.getCharacterSize());
+
+  // // set up a charcter array to set the text
+  // char displayString[255] = "Sample Text";
+
+  // main loop - continues for each frame, while window is open
+  while (window.isOpen()) {
+    sf::Event event;
+    while (window.pollEvent(event)) {
+      ImGui::SFML::ProcessEvent(window, event);
+
+      // This event is treggered when window is closed
+      if (event.type == sf::Event::Closed) {
+        window.close();
+      }
+    }
+
+    // // Loop through circles and update properties
+    for (auto circle : entity_manager.m_circlesVec) {
+      // // update imgui of this frame with the time that the last frame took;
+      // ImGui::SFML::Update(window, deltaClock.restart());
+      // ImGui::Begin("Window title");
+      // ImGui::Text("Window text!");
+      // ImGui::Checkbox("Draw Circle", &drawCircle);
+      // ImGui::SameLine();
+      // ImGui::Checkbox("Draw Text", &drawText);
+      // ImGui::SameLine();
+      // ImGui::SliderFloat("Radius", &circleRadius, 0.0f, 300.0f);
+      // ImGui::SliderInt("Sides", &circleSegments, 3, 64);
+      // ImGui::ColorEdit3("Color Circle", c);
+      // ImGui::InputText("Text", displayString, 255);
+
+      // if (ImGui::Button("Set Text")) {
+      //   text.setString(displayString);
+      // }
+      // ImGui::SameLine();
+
+      // if (ImGui::Button("Reset Circle")) {
+      //   circle.setPosition(0, 0);
+      // }
+      // ImGui::End();
+
+      // set the circle properies because they may have been updated with the ui
+      // circle.setFillColor(sf::Color(c[0] * 255, c[1] * 255, c[2] * 255));
+      // circle.setPointCount(circleSegments);
+      // circle.setRadius(circleRadius);
+
+      // basic animation - move in each frame
+      // circle->updatePosition(entity_manager.window.width,
+      //                        entity_manager.window.height);
+      circle->updatePosition(window.getSize().x, window.getSize().y);
+      circle->updateText(myFont);
+    }
+    // basic rendering function calls
+    window.clear();
+
+    // Set the view to cover the entire window
+    // Set a custom view that covers the entire area of the rectangle
+    sf::View customView(sf::FloatRect(-10, -10, window.getSize().x + 10,
+                                      window.getSize().y + 10));
+
+    for (auto circle : entity_manager.m_circlesVec) {
+      if (circle->alive) {
+        window.draw(circle->circle_shape);
+        window.draw(circle->text);
+      }
+    }
+
+    // if (drawText) {
+    //   window.draw(text);
+    // }
+
+    // ImGui::SFML::Render(window);
+    window.display();
+  }
   return 0;
 }
