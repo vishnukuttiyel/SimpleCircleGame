@@ -7,6 +7,8 @@
 #include "imgui-SFML.h"
 #include "imgui.h"
 
+// TODO: Visualise rectangles and integerate IMGUI pannel
+
 struct BoundingBox {
   float x_min, y_min, x_max, y_max;
 };
@@ -235,9 +237,6 @@ int main(int argc, char* argv[]) {
   entity_manager.loadFromFile("../config/config.txt");
 
   std::cout << "Number of entities = " << entity_manager.p_id << "\n";
-  // create a window of size w*h pixels
-  // top-left of the window is (0,0) and bottom-right is (w,h)
-  // you will have to read these from the config file
 
   auto wWidth = entity_manager.window.width;
   auto wHeight = entity_manager.window.height;
@@ -264,13 +263,6 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
 
-  sf::Text text("Sample Text", myFont, 24);
-
-  text.setPosition(0, wHeight - (float)text.getCharacterSize());
-
-  // // set up a charcter array to set the text
-  // char displayString[255] = "Sample Text";
-
   // main loop - continues for each frame, while window is open
   while (window.isOpen()) {
     sf::Event event;
@@ -285,47 +277,11 @@ int main(int argc, char* argv[]) {
 
     // // Loop through circles and update properties
     for (auto circle : entity_manager.m_circlesVec) {
-      // // update imgui of this frame with the time that the last frame took;
-      // ImGui::SFML::Update(window, deltaClock.restart());
-      // ImGui::Begin("Window title");
-      // ImGui::Text("Window text!");
-      // ImGui::Checkbox("Draw Circle", &drawCircle);
-      // ImGui::SameLine();
-      // ImGui::Checkbox("Draw Text", &drawText);
-      // ImGui::SameLine();
-      // ImGui::SliderFloat("Radius", &circleRadius, 0.0f, 300.0f);
-      // ImGui::SliderInt("Sides", &circleSegments, 3, 64);
-      // ImGui::ColorEdit3("Color Circle", c);
-      // ImGui::InputText("Text", displayString, 255);
-
-      // if (ImGui::Button("Set Text")) {
-      //   text.setString(displayString);
-      // }
-      // ImGui::SameLine();
-
-      // if (ImGui::Button("Reset Circle")) {
-      //   circle.setPosition(0, 0);
-      // }
-      // ImGui::End();
-
-      // set the circle properies because they may have been updated with the ui
-      // circle.setFillColor(sf::Color(c[0] * 255, c[1] * 255, c[2] * 255));
-      // circle.setPointCount(circleSegments);
-      // circle.setRadius(circleRadius);
-
-      // basic animation - move in each frame
-      // circle->updatePosition(entity_manager.window.width,
-      //                        entity_manager.window.height);
       circle->updatePosition(window.getSize().x, window.getSize().y);
       circle->updateText(myFont);
     }
     // basic rendering function calls
     window.clear();
-
-    // Set the view to cover the entire window
-    // Set a custom view that covers the entire area of the rectangle
-    sf::View customView(sf::FloatRect(-10, -10, window.getSize().x + 10,
-                                      window.getSize().y + 10));
 
     for (auto circle : entity_manager.m_circlesVec) {
       if (circle->alive) {
@@ -334,11 +290,6 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    // if (drawText) {
-    //   window.draw(text);
-    // }
-
-    // ImGui::SFML::Render(window);
     window.display();
   }
   return 0;
