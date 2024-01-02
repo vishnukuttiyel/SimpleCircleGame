@@ -23,6 +23,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(GLOB_RECURSE SOURCES "src/*.cpp" imgui/imgui_demo.cpp imgui/imgui.cpp imgui/imgui_widgets.cpp imgui/imgui_draw.cpp imgui/imgui_tables.cpp imgui-sfml/imgui-SFML.cpp)
 file(GLOB_RECURSE HEADERS "include/*.h" imgui/*.h)
 
+add_subdirectory(src)
+
 # Executable
 add_executable(sfml-app ${SOURCES} ${HEADERS})
 
@@ -31,3 +33,9 @@ target_link_libraries(sfml-app PRIVATE sfml-graphics sfml-window sfml-system)
 
 # Link OpenGL
 target_link_libraries(sfml-app PRIVATE ${OPENGL_LIBRARIES})
+
+# Link your library
+target_link_libraries(sfml-app PRIVATE SimpleCircleGameLib)
+
+# Add testing subdirectory
+add_subdirectory(test)
