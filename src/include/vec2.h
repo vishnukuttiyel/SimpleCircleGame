@@ -1,5 +1,5 @@
 
-// Vec2.h
+// vec2.h
 #pragma once
 
 class Vec2 {

@@ -34,6 +34,18 @@ make
 ./bin/sfml-app
 ```
 
+To run the tests, execute the following commands in the terminal:
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+./bin/sfml-app-tests
+```
+<img src="game.gif"/>
+
+
 ------------------------------------------------------------------------------------------------
 # Program Specification based on 4300 course
 ------------------------------------------------------------------------------------------------
