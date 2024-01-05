@@ -117,6 +117,14 @@ For example, if an Entity has a 100 frame life span, and it has been alive for
 50 frames, its alpha value should be set to 0.5 * 255. The alpha should go from
 255 when it is first spawned, to 0 on the last frame it is alive.
 
+GUI:
+- You must construct a GUI using ImGui which has the following functionality: 
+-The GUI must display options to turn off each system independently. 
+- For each entity in the game, the GUI must list the ID, tag, and position of that entity. You must display a list of all entities, as well as lists of entities by their tag. You must also have some way of destroying a given entity by interacting with the UI element associated with it. 
+- You must be able to change the enemy spawn interval through the GUI  
+- You must be able to manually spawn enemies in some way through the GUI
+- You may develop the GUI in any way that contains this functionality, but it must be easily usable and clearly presented to get full marks.
+
 Misc:
 - The 'P' key should pause the game
 - The 'ESC' key should close the game.
@@ -223,3 +231,7 @@ Implement collision detection in the `Game::sCollision` function. If an entity i
 Finish implementing the remaining game functionality, including reading configuration files. Now that the basic mechanics are in place, you can add more advanced features and polish.
 
 This step-by-step approach should help you gradually build your game, ensuring that each component is functional before moving on to the next.
+
+## Step 9: Implement the GUI functionality
+
+Implement GUI requirements.

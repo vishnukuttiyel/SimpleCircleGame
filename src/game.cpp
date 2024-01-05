@@ -11,6 +11,7 @@ void Game::init(const std::string& path) {
   m_window.setFramerateLimit(60);
 
   spawnPlayer();
+  spawnEnemy();
 }
 
 void Game::run() {
@@ -21,7 +22,6 @@ void Game::run() {
     sCollision();
     sUserInput();
     sRender();
-
     m_currentFrame++;
   }
 }
@@ -42,19 +42,41 @@ void Game::spawnPlayer() {
   m_player = entity;
 }
 
-void Game::spawnEnemy() { m_lastEnemySpawnTime = m_currentFrame; }
+void Game::spawnEnemy() {
+  auto entity = m_entities.addEntity("enemy");
+
+  entity->cTransform = std::make_shared<CTransform>(Vec2(200.0f, 200.0f),
+                                                    Vec2(1.0f, 0.0f), 0.0f);
+
+  entity->cShape = std::make_shared<CShape>(32.0f, 5, sf::Color(10, 10, 10),
+                                            sf::Color(255, 0, 0), 4.0f);
+
+  entity->cInput = std::make_shared<CInput>();
+
+  m_lastEnemySpawnTime = m_currentFrame;
+}
 
 void Game::spawnSmallEnemies(std::shared_ptr<Entity> entity) {
   static_cast<void>(entity);
 }
 
-void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target) {}
+void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target) {
+  auto bullet = m_entities.addEntity("bullet");
+
+  bullet->cTransform =
+      std::make_shared<CTransform>(target, Vec2(0.0f, 0.0f), 0.0f);
+
+  bullet->cShape = std::make_shared<CShape>(10.0f, 10, sf::Color(255, 255, 10),
+                                            sf::Color(255, 255, 255), 4.0f);
+}
 
 void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {}
 
 void Game::sMovement() {
-  m_player->cTransform->position.x += m_player->cTransform->velocity.x;
-  m_player->cTransform->position.y += m_player->cTransform->velocity.y;
+  for (auto entitiy : m_entities.getEntities()) {
+    entitiy->cTransform->position.x += entitiy->cTransform->velocity.x;
+    entitiy->cTransform->position.y += entitiy->cTransform->velocity.y;
+  }
 }
 
 void Game::sCollision() {}
@@ -63,14 +85,16 @@ void Game::sEnemySpawner() {}
 
 void Game::sRender() {
   m_window.clear();
+  for (auto entitiy : m_entities.getEntities()) {
+    entitiy->cShape->circle.setPosition(entitiy->cTransform->position.x,
+                                        entitiy->cTransform->position.y);
+    entitiy->cTransform->angle += 1.0f;
 
-  m_player->cShape->circle.setPosition(m_player->cTransform->position.x,
-                                       m_player->cTransform->position.y);
-  m_player->cTransform->angle += 1.0f;
+    entitiy->cShape->circle.setRotation(entitiy->cTransform->angle);
 
-  m_player->cShape->circle.setRotation(m_player->cTransform->angle);
+    m_window.draw(entitiy->cShape->circle);
+  }
 
-  m_window.draw(m_player->cShape->circle);
   m_window.display();
 }
 
@@ -107,6 +131,7 @@ void Game::sUserInput() {
       if (event.mouseButton.button == sf::Mouse::Left) {
         std::cout << "Left Mouse Button Clicked at (" << event.mouseButton.x
                   << "," << event.mouseButton.y << ")\n";
+        spawnBullet(m_player, Vec2(event.mouseButton.x, event.mouseButton.y));
       }
       if (event.mouseButton.button == sf::Mouse::Right) {
         std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x
