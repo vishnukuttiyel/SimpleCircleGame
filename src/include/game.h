@@ -6,7 +6,7 @@
 
 struct PlayerCongig {
   int SR, CR, FR, FG, FB, OR, OG, OB, OT, V;
-  float s;
+  float S;
 };
 struct EnemyCongig {
   int SR, CR, FR, FG, FB, OR, OG, OB, OT, VMIN, VMAX, L, SI;
