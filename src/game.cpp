@@ -32,8 +32,6 @@ void Game::init(const std::string& path) {
     std::string token;
 
     while (fin >> token) {
-        // std::cout << token;
-
         if (token == "Window") {
             int width, height, frameRate;
             bool fullScreen;
@@ -158,11 +156,20 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> entity) { static_cast<void>
 
 void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target) {
     auto bullet = m_entities.addEntity("bullet");
+    Vec2 target_vec = target - entity->cTransform->position;
+    auto target_vec_length = std::max(target_vec.length(), 1.0f);
 
-    bullet->cTransform = std::make_shared<CTransform>(target, Vec2(0.0f, 0.0f), 0.0f);
+    Vec2 bullet_vel = Vec2((target_vec.x / target_vec_length) * m_bulletconfig.S,
+                           (target_vec.y / target_vec_length) * m_bulletconfig.S);
 
-    bullet->cShape = std::make_shared<CShape>(10.0f, 10, sf::Color(255, 255, 10),
-                                              sf::Color(255, 255, 255), 4.0f);
+    bullet->cTransform =
+        std::make_shared<CTransform>(entity->cTransform->position, bullet_vel, 0.0f);
+
+    bullet->cShape = std::make_shared<CShape>(
+        m_bulletconfig.SR, m_bulletconfig.V,
+        sf::Color(m_bulletconfig.FR, m_bulletconfig.FG, m_bulletconfig.FB),
+        sf::Color(m_bulletconfig.OG, m_bulletconfig.OR, m_bulletconfig.OB), m_bulletconfig.OT);
+    bullet->cLifespan = std::make_shared<CLifespan>(m_bulletconfig.L);
 }
 
 void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {}
@@ -171,16 +178,16 @@ void Game::sMovement() {
     m_player->cTransform->velocity = Vec2{0, 0};
 
     if (m_player->cInput->up) {
-        m_player->cTransform->velocity.y = -5.f;
+        m_player->cTransform->velocity.y = -m_playerconfig.S;
     }
     if (m_player->cInput->down) {
-        m_player->cTransform->velocity.y = 5.f;
+        m_player->cTransform->velocity.y = m_playerconfig.S;
     }
     if (m_player->cInput->left) {
-        m_player->cTransform->velocity.x = -5.f;
+        m_player->cTransform->velocity.x = -m_playerconfig.S;
     }
     if (m_player->cInput->right) {
-        m_player->cTransform->velocity.x = 5.f;
+        m_player->cTransform->velocity.x = m_playerconfig.S;
     }
 
     auto window_width = m_window.getSize().x;
@@ -236,10 +243,11 @@ void Game::sCollision() {
         {  // check if enemy killed player
             auto distance_square =
                 m_player->cTransform->position.distanceSquare(enemy->cTransform->position);
-            auto min_collistion_distance =
-                m_player->cShape->circle.getRadius() + enemy->cShape->circle.getRadius();
+            auto min_collistion_distance = m_playerconfig.CR + m_enemyconfig.CR;
 
             if (distance_square <= min_collistion_distance * min_collistion_distance) {
+                spawnSmallEnemies(enemy);
+
                 enemy->destroy();
                 m_player->destroy();
             }
@@ -249,10 +257,10 @@ void Game::sCollision() {
         for (auto bullet : m_entities.getEntities("bullet")) {
             auto distance_square =
                 bullet->cTransform->position.distanceSquare(enemy->cTransform->position);
-            auto min_collistion_distance =
-                bullet->cShape->circle.getRadius() + enemy->cShape->circle.getRadius();
+            auto min_collistion_distance = m_bulletconfig.CR + m_enemyconfig.CR;
 
             if (distance_square <= min_collistion_distance * min_collistion_distance) {
+                spawnSmallEnemies(enemy);
                 enemy->destroy();
                 bullet->destroy();
             }
@@ -274,6 +282,18 @@ void Game::sRender() {
         entitiy->cTransform->angle += 1.0f;
 
         entitiy->cShape->circle.setRotation(entitiy->cTransform->angle);
+
+        if (entitiy->cLifespan) {
+            entitiy->cLifespan->remaining -= 1;
+            if (entitiy->cLifespan->remaining <= 0) {
+                entitiy->destroy();
+            }
+            sf::Color color = entitiy->cShape->circle.getFillColor();
+
+            color.a = static_cast<sf::Uint8>(
+                (entitiy->cLifespan->remaining * 255.0F / entitiy->cLifespan->total));
+            entitiy->cShape->circle.setFillColor(color);
+        }
 
         m_window.draw(entitiy->cShape->circle);
     }
@@ -337,13 +357,9 @@ void Game::sUserInput() {
 
         if (event.type == sf::Event::MouseButtonPressed) {
             if (event.mouseButton.button == sf::Mouse::Left) {
-                std::cout << "Left Mouse Button Clicked at (" << event.mouseButton.x << ","
-                          << event.mouseButton.y << ")\n";
                 spawnBullet(m_player, Vec2(event.mouseButton.x, event.mouseButton.y));
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
-                std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x << ","
-                          << event.mouseButton.y << ")\n";
             }
         }
     }

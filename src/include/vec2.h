@@ -24,4 +24,5 @@ class Vec2 {
   void operator/=(const Vec2& rhs);
 
   float distanceSquare(const Vec2& rhs) const;
+  float length() const;
 };

@@ -185,7 +185,8 @@ for this program. The format of the line is as follows:
 | Fill Color        | FR, FG, FB | int, int, int |
 | Outline Color     | OR, OG, OB | int, int, int |
 | Outline Thickness | OT         | int           |
-| Velocity          | VL         | float         |
+| Shape Vertices    | V          | int           |
+| Small Lifespan    | L          | int           |
 
 
 ----------------------------------------------------------------
