@@ -62,7 +62,7 @@ void Game::init(const std::string& path) {
             m_text.setFillColor(sf::Color(r, g, b));
             m_text.setCharacterSize(size);
             m_text.setPosition(0, 0);
-            m_text.setString("Origin");
+            m_text.setString("0");
         }
         if (token == "Player") {
             fin >> m_playerconfig.SR >> m_playerconfig.CR >> m_playerconfig.S >>
@@ -94,9 +94,11 @@ void Game::run() {
             spawnPlayer();
         }
         m_entities.update();
-        sEnemySpawner();
-        sMovement();
-        sCollision();
+        if (!m_paused) {
+            sEnemySpawner();
+            sMovement();
+            sCollision();
+        }
         sUserInput();
         sRender();
         m_currentFrame++;
@@ -119,6 +121,7 @@ void Game::spawnPlayer() {
         sf::Color(m_playerconfig.OR, m_playerconfig.OG, m_playerconfig.OB), m_playerconfig.OT);
 
     entity->cInput = std::make_shared<CInput>();
+    entity->cScore = std::make_shared<CScore>(0);
 
     m_player = entity;
 }
@@ -147,12 +150,32 @@ void Game::spawnEnemy() {
         m_enemyconfig.SR, number_of_vertices, sf::Color(FR, FG, FB),
         sf::Color(m_enemyconfig.OR, m_enemyconfig.OG, m_enemyconfig.OB), m_enemyconfig.OT);
 
-    entity->cInput = std::make_shared<CInput>();
+    entity->cScore = std::make_shared<CScore>(number_of_vertices * 100);
 
     m_lastEnemySpawnTime = m_currentFrame;
 }
 
-void Game::spawnSmallEnemies(std::shared_ptr<Entity> entity) { static_cast<void>(entity); }
+void Game::spawnSmallEnemies(std::shared_ptr<Entity> entity) {
+    auto number_of_vertices = entity->cShape->circle.getPointCount();
+    float small_enemy_angle = 2 * M_PI / number_of_vertices;
+
+    for (int i = 0; i < number_of_vertices; i++) {
+        auto small_enemy = m_entities.addEntity("Smallenemy");
+
+        float small_enemy_speed = entity->cTransform->velocity.length();
+
+        Vec2 small_enemy_vel = Vec2((std::cos(small_enemy_angle * i)) * small_enemy_speed,
+                                    (std::sin(small_enemy_angle * i)) * small_enemy_speed);
+
+        small_enemy->cTransform =
+            std::make_shared<CTransform>(entity->cTransform->position, small_enemy_vel, 0.0f);
+
+        small_enemy->cShape = std::make_shared<CShape>(
+            m_enemyconfig.SR / 2, number_of_vertices, entity->cShape->circle.getFillColor(),
+            entity->cShape->circle.getOutlineColor(), m_enemyconfig.OT);
+        small_enemy->cLifespan = std::make_shared<CLifespan>(m_enemyconfig.L);
+    }
+}
 
 void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target) {
     auto bullet = m_entities.addEntity("bullet");
@@ -172,7 +195,28 @@ void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target) {
     bullet->cLifespan = std::make_shared<CLifespan>(m_bulletconfig.L);
 }
 
-void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {}
+void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {
+    if (m_currentFrame - m_lastSuperPowerTime > 10) {  // cool down time
+        int number_of_bullets = 10;
+        float bullet_angles = 2 * M_PI / number_of_bullets;
+        for (int i = 0; i < number_of_bullets; i++) {
+            auto bullet = m_entities.addEntity("bullet");
+
+            Vec2 bullet_vel = Vec2((std::cos(bullet_angles * i)) * m_bulletconfig.S,
+                                   (std::sin(bullet_angles * i)) * m_bulletconfig.S);
+
+            bullet->cTransform =
+                std::make_shared<CTransform>(entity->cTransform->position, bullet_vel, 0.0f);
+
+            bullet->cShape = std::make_shared<CShape>(
+                m_bulletconfig.SR, m_bulletconfig.V, sf::Color(255, 0, 0),
+                sf::Color(m_bulletconfig.OG, m_bulletconfig.OR, m_bulletconfig.OB),
+                m_bulletconfig.OT);
+            bullet->cLifespan = std::make_shared<CLifespan>(m_bulletconfig.L);
+        }
+        m_lastSuperPowerTime = m_currentFrame;
+    }
+}
 
 void Game::sMovement() {
     m_player->cTransform->velocity = Vec2{0, 0};
@@ -236,6 +280,11 @@ void Game::sMovement() {
         entitiy->cTransform->position.x += entitiy->cTransform->velocity.x;
         entitiy->cTransform->position.y += entitiy->cTransform->velocity.y;
     }
+
+    for (auto entitiy : m_entities.getEntities("Smallenemy")) {
+        entitiy->cTransform->position.x += entitiy->cTransform->velocity.x;
+        entitiy->cTransform->position.y += entitiy->cTransform->velocity.y;
+    }
 }
 
 void Game::sCollision() {
@@ -263,6 +312,7 @@ void Game::sCollision() {
                 spawnSmallEnemies(enemy);
                 enemy->destroy();
                 bullet->destroy();
+                m_player->cScore->score += enemy->cScore->score;
             }
         }
     }
@@ -297,6 +347,7 @@ void Game::sRender() {
 
         m_window.draw(entitiy->cShape->circle);
     }
+    m_text.setString(std::to_string(m_player->cScore->score));
     m_window.draw(m_text);
 
     m_window.display();
@@ -312,20 +363,25 @@ void Game::sUserInput() {
         if (event.type == sf::Event::KeyPressed) {
             switch (event.key.code) {
                 case sf::Keyboard::W:
-                    std::cout << "W key Pressed\n";
                     m_player->cInput->up = true;
                     break;
                 case sf::Keyboard::A:
-                    std::cout << "A key Pressed\n";
                     m_player->cInput->left = true;
                     break;
                 case sf::Keyboard::S:
-                    std::cout << "S key Pressed\n";
                     m_player->cInput->down = true;
                     break;
                 case sf::Keyboard::D:
-                    std::cout << "D key Pressed\n";
                     m_player->cInput->right = true;
+                    break;
+                case sf::Keyboard::P:
+                    m_paused = !m_paused;
+                    break;
+                case sf::Keyboard::Escape:
+                    m_running = false;
+                    break;
+                case sf::Keyboard::Space:
+                    spawnSpecialWeapon(m_player);
                     break;
                 default:
                     break;
@@ -335,19 +391,15 @@ void Game::sUserInput() {
         if (event.type == sf::Event::KeyReleased) {
             switch (event.key.code) {
                 case sf::Keyboard::W:
-                    std::cout << "W key Released\n";
                     m_player->cInput->up = false;
                     break;
                 case sf::Keyboard::A:
-                    std::cout << "A key Released\n";
                     m_player->cInput->left = false;
                     break;
                 case sf::Keyboard::S:
-                    std::cout << "S key Released\n";
                     m_player->cInput->down = false;
                     break;
                 case sf::Keyboard::D:
-                    std::cout << "D key Released\n";
                     m_player->cInput->right = false;
                     break;
                 default:
@@ -360,6 +412,7 @@ void Game::sUserInput() {
                 spawnBullet(m_player, Vec2(event.mouseButton.x, event.mouseButton.y));
             }
             if (event.mouseButton.button == sf::Mouse::Right) {
+                spawnSpecialWeapon(m_player);
             }
         }
     }
